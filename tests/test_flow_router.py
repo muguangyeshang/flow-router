@@ -132,3 +132,40 @@ class TestLint(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestEdgeQueries(unittest.TestCase):
+    """边界查询不崩溃、行为合理（2026-11-07 实战自用探测出的 9 类，锁回归）。"""
+
+    def setUp(self):
+        self.r = router()
+
+    def _abstained(self, q):
+        return self.r.find(q)["abstained"]
+
+    def test_empty_and_whitespace(self):
+        self.assertTrue(self._abstained(""))
+        self.assertTrue(self._abstained("   "))
+
+    def test_ascii_trigger_case_insensitive(self):
+        self.assertFalse(self._abstained("spider"))
+        self.assertFalse(self._abstained("SPIDER 大写"))
+
+    def test_repeated_char_no_false_hit(self):
+        """「抓抓抓抓抓抓」重复字不产生假命中。"""
+        self.assertTrue(self._abstained("抓抓抓抓抓抓"))
+
+    def test_emoji_query_no_crash(self):
+        self.assertTrue(self._abstained("🚀 emoji 查询"))
+
+    def test_single_letter_held_by_gate(self):
+        """单字母 'a' 能进 ranked 但必须被门拦住——双门存在的意义。"""
+        res = self.r.find("a")
+        self.assertTrue(res["abstained"])
+
+    def test_skill_name_alone_insufficient(self):
+        """只报挂载技能名不给动作，20 分档不够过门——拒答而非硬答。"""
+        self.assertTrue(self._abstained("scrape-define 直接给技能名"))
+
+    def test_alias_template_still_hits(self):
+        self.assertFalse(self._abstained("把网站上的内容弄到表格里"))
