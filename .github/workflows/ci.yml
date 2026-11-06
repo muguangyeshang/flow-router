@@ -1,0 +1,36 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: lint（结构校验）
+        run: python flow_router.py --config flows.json lint
+      - name: calibrate（0 错阈值区存在）
+        run: python flow_router.py --config flows.json --eval eval.json calibrate
+      - name: holdout（冻结集 9/9）
+        run: |
+          python flow_router.py --config flows.json --eval eval.json holdout
+      - name: holdout 退出码即验收（非 0 直接红）
+        run: python flow_router.py --config flows.json --eval eval.json holdout > /dev/null
+      - name: init 脚手架可生成且 lint 过
+        run: |
+          python flow_router.py init /tmp/init-test.json
+          python flow_router.py --config /tmp/init-test.json lint
+      - name: pip 安装 + Python API 冒烟
+        run: |
+          pip install .
+          python -c "from flow_router import Router; import json; r=Router(json.load(open('flows.json',encoding='utf-8-sig'))); assert not r.find('我要抓一批新闻列表页')['abstained']; assert r.find('给我讲讲 TCP 三次握手')['abstained']"
+      - name: bench 可跑（数字只打印不作断言，防 CI 机器性能波动误红）
+        run: python bench.py --n 200
