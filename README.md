@@ -2,6 +2,21 @@
 
 [![CI](https://github.com/AYAN-2026/flow-router/actions/workflows/ci.yml/badge.svg)](https://github.com/AYAN-2026/flow-router/actions/workflows/ci.yml)
 
+> **Who this is for:** agent engineers with multiple workflows/routes to dispatch.
+> **Not for** beginners without existing flows — you define the triggers, the router scores and abstains. 中文文档在下方 ↓
+
+**English quick view:** Your agent has N workflows; a user says one sentence — which one? LLM guessing is costly and confidently wrong. flow-router answers with lexical scoring (5-tier weighted triggers × BM25-style idf, exclusion clauses, colloquial-template matching) and a **two-gate abstain mechanism** (confidence + absolute score): below threshold it clearly refuses instead of guessing. Pure stdlib, zero dependencies, no model loading — p50≈0.1ms, ~11,700 routes/s single-threaded (`python bench.py`).
+
+```bash
+pip install flow-router
+flow-router init my-flows.json   # scaffold config + eval, then edit to your business
+flow-router --config my-flows.json --eval my-flows-eval.json holdout   # frozen-set acceptance
+```
+
+Docs below are in Chinese; config format and CLI help are self-explanatory (`--help`), see [docs/DESIGN.md](docs/DESIGN.md) for the mechanism.
+
+---
+
 **Problem:** 你的 agent 有 N 条流程/工具，用户说一句大白话，走哪条？靠 LLM 猜，又贵又会自信地答错——把"讲 TCP 三次握手"误判成"走爬虫流程"。
 
 **flow-router 用词法打分 + 双门拒答回答这个问题：** 每条请求给出最高分流程和命中依据；分数或置信度不达标时**明确拒答**而不是硬选一条。拒答是功能，不是失败。

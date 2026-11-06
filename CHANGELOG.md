@@ -2,6 +2,14 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循语义化版本。
 
+## [1.1.3] - 2026-11-07
+
+### 新增
+- README 首屏双语化：英文 Problem + Quick view + 快速命令段（目标用户是非中文的 agent 开发者），中文正文保留
+- README 定位声明：明确"适合谁/不适合谁"（无现成流程的新手不是目标用户）
+- `SECURITY.md`（安全策略：支持版本、漏洞报告渠道、攻击面说明——本工具无网络无子进程，唯一执行面是本地 config）
+- `CODE_OF_CONDUCT.md`（Contributor Covenant 2.1）
+
 ## [1.1.1] - 2026-11-07
 
 ### 新增
