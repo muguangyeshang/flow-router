@@ -1,5 +1,7 @@
 # flow-router
 
+[![CI](https://github.com/AYAN-2026/flow-router/actions/workflows/ci.yml/badge.svg)](https://github.com/AYAN-2026/flow-router/actions/workflows/ci.yml)
+
 **Problem:** 你的 agent 有 N 条流程/工具，用户说一句大白话，走哪条？靠 LLM 猜，又贵又会自信地答错——把"讲 TCP 三次握手"误判成"走爬虫流程"。
 
 **flow-router 用词法打分 + 双门拒答回答这个问题：** 每条请求给出最高分流程和命中依据；分数或置信度不达标时**明确拒答**而不是硬选一条。拒答是功能，不是失败。
