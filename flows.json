@@ -1,0 +1,79 @@
+{
+  "gate": {
+    "abstain_min": 0.1,
+    "score_min": 400
+  },
+  "flows": [
+    {
+      "name": "爬虫",
+      "triggers": [
+        "爬虫",
+        "抓取",
+        "采集",
+        "抓下来",
+        "抓列表",
+        "抓新闻",
+        "列表页",
+        "spider"
+      ],
+      "alias": [
+        "把网站内容弄到表格里",
+        "把页面价格记下来存着"
+      ],
+      "not_for": [
+        "数据库",
+        "索引优化",
+        "ppt"
+      ],
+      "skills": [
+        "scrape-ensure-project",
+        "scrape-define",
+        "scrape-explore-site"
+      ],
+      "doc": "网站数据采集流程：抓取网页、采集商品价格、抓新闻列表页、抓详情、建爬虫。平台站点（Amazon/抖音）另有专用通道。"
+    },
+    {
+      "name": "研报",
+      "triggers": [
+        "研报",
+        "报告",
+        "行业分析",
+        "产业链",
+        "深度报告"
+      ],
+      "alias": [
+        "写一份行业研究报告",
+        "出一篇产业链深度分析"
+      ],
+      "not_for": [
+        "ppt"
+      ],
+      "skills": [
+        "report-outline",
+        "report-cite",
+        "report-verify"
+      ],
+      "doc": "研究报告流水线：选题、大纲、引用、数字回溯、验收。覆盖行业分析、产业链深度报告、财报点评。"
+    },
+    {
+      "name": "文档写作",
+      "triggers": [
+        "文档",
+        "纪要",
+        "写作",
+        "排版"
+      ],
+      "alias": [
+        "整理成会议纪要",
+        "帮我把内容写成文章"
+      ],
+      "not_for": [],
+      "skills": [
+        "doc-outline",
+        "doc-format"
+      ],
+      "doc": "文档写作：会议纪要、内部沟通文稿、markdown 排版、多格式导出。"
+    }
+  ],
+  "corpus_extra": []
+}
