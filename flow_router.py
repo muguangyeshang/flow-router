@@ -430,6 +430,13 @@ def main():
             print(f"  {x['score']:>5}  conf={x['conf']:.3f}  {x['flow']}  | {x['why']}")
         if res["abstained"]:
             print(f"\n→ 拒答（{res['reason']}）：明确说库里没有，不给错的")
+            # 拒答不是终点：给最接近候选和分差，用户才知道往哪补触发词/说法表。
+            # （2026-11-07 模拟用户实测：「我的快递到哪儿了」只拿一个弱命中被拒，
+            #  输出只有"拒答"——用户无从改进配置，等于把 80% 的活儿甩回去。）
+            if res["ranked"]:
+                c = res["ranked"][0]
+                print(f"  最接近：{c['flow']}（score={c['score']} conf={c['conf']}，命中依据：{c['why']}）")
+                print(f"  若本该命中 → 为「{c['flow']}」补触发词/说法表后重跑 calibrate")
         else:
             print(f"\n→ {res['hit']['flow']}")
         return 0
