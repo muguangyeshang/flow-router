@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flow-router"
+version = "1.0.0"
+description = "中文意图路由器：词法打分 + 双门拒答 + 校准/留出集验收，附 MCP server。零第三方依赖。"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Ayan (阿岩)" }]
+keywords = ["intent-router", "chinese-nlp", "mcp", "agent", "routing", "abstain"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.scripts]
+flow-router = "flow_router:main"
+
+[tool.setuptools]
+py-modules = ["flow_router"]

@@ -17,10 +17,17 @@ flow-router —— 中文任务路由器（词法打分 + 双门拒答 + 校准/
   余量 < 阈值视为脆弱（语料一变就可能翻盘）
 
 用法：
+  python flow_router.py init my-flows.json            # 脚手架：生成配置+验收样本骨架
   python flow_router.py --config flows.json find 把这个网站的价格抓下来
   python flow_router.py --config flows.json --eval eval.json calibrate
   python flow_router.py --config flows.json --eval eval.json holdout
   python flow_router.py --config flows.json lint
+  python flow_router.py --config flows.json serve-mcp # MCP server（stdio），agent 直连
+
+Python API（pip 安装后）：
+  from flow_router import Router
+  r = Router(cfg_dict)
+  r.find("我要抓一批新闻列表页")   # -> {"abstained": bool, "hit": {...}, "ranked": [...]}
 """
 import argparse
 import json
@@ -294,15 +301,126 @@ def cmd_lint(r):
     return 0
 
 
+def cmd_init(out_path):
+    """脚手架：生成 flows.json + eval.json 骨架。
+    用户 80% 的成本在给业务写触发词和样本——init 给出可跑的起点，改着用比从零写快得多。"""
+    import os
+    if os.path.exists(out_path):
+        sys.exit(f"{out_path} 已存在，不动它")
+    skeleton = {
+        "gate": {"abstain_min": 0.10, "score_min": 400},
+        "flows": [{
+            "name": "示例流程",
+            "triggers": ["示例", "测试", "演示"],
+            "alias": ["帮我把示例跑起来", "来一个演示看看"],
+            "not_for": [],
+            "skills": [],
+            "doc": "示例流程的正文描述：写清楚这条流程管什么、不管什么。"
+                   "触发词是用户可能说的词，说法表是整句口语模板，not_for 是必须排除的词。",
+        }],
+        "corpus_extra": [],
+    }
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(skeleton, f, ensure_ascii=False, indent=2)
+    evp = out_path.rsplit(".", 1)[0] + "-eval.json"
+    if not os.path.exists(evp):
+        with open(evp, "w", encoding="utf-8") as f:
+            json.dump({"answerable": [["来一个示例", "示例流程"]],
+                       "unanswerable": ["今天天气怎么样"]}, f, ensure_ascii=False, indent=2)
+    print(f"已生成 {out_path} + {evp}。下一步：")
+    print(f"  1. 把示例流程换成你的业务（触发词 ≥3 个、doc 写满）")
+    print(f"  2. eval 里 answerable/unanswerable 各放 5+ 条真实说法")
+    print(f"  3. python {__file__} --config {out_path} --eval {evp} calibrate")
+    return 0
+
+
+# —————————————————————— MCP server（纯标准库）——————————————————————
+# 为什么值得做：做 agent 的人活在 MCP 里。暴露一个 route 工具，任何支持 MCP 的
+# agent（Claude / WorkBuddy / …）一行配置就能拿到路由能力，不用写一行胶水代码。
+
+def _mcp_tool_route(router, args):
+    res = router.find(args["query"])
+    out = {"abstained": res["abstained"], "reason": res["reason"]}
+    if res["abstained"]:
+        out["message"] = "没有匹配到任何流程——按拒答语义，应告知用户库里没有，不要瞎猜"
+        if res["ranked"]:
+            out["closest"] = res["ranked"][0]["flow"]
+    else:
+        h = res["hit"]
+        out.update({"flow": h["flow"], "score": h["score"], "confidence": h["conf"], "why": h["why"]})
+        out["alternatives"] = [x["flow"] for x in res["ranked"][1:3]]
+    return [{"type": "text", "text": json.dumps(out, ensure_ascii=False)}]
+
+
+def cmd_serve_mcp(config_path):
+    """stdio JSON-RPC MCP server。行分隔 JSON（MCP 2024-11-05 spec 的 stdio 传输）。"""
+    router = Router(json.load(open(config_path, encoding="utf-8-sig")))
+    TOOLS = [{
+        "name": "route",
+        "description": "把一句中文用户请求路由到预定义流程之一；无法确定时明确拒答（abstained=true），不要猜。",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"query": {"type": "string", "description": "用户的原话"}},
+            "required": ["query"],
+        },
+    }]
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            req = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        method, rid = req.get("method"), req.get("id")
+        # 通知类无 id，不回包
+        if rid is None:
+            continue
+        if method == "initialize":
+            resp = {"jsonrpc": "2.0", "id": rid, "result": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {"tools": {}},
+                "serverInfo": {"name": "flow-router", "version": "1.0.0"},
+            }}
+        elif method == "tools/list":
+            resp = {"jsonrpc": "2.0", "id": rid, "result": {"tools": TOOLS}}
+        elif method == "tools/call":
+            p = req.get("params", {})
+            try:
+                result = _mcp_tool_route(router, p.get("arguments", {}))
+                resp = {"jsonrpc": "2.0", "id": rid, "result": {"content": result, "isError": False}}
+            except Exception as e:
+                resp = {"jsonrpc": "2.0", "id": rid, "result": {
+                    "content": [{"type": "text", "text": str(e)}], "isError": True}}
+        elif method == "ping":
+            resp = {"jsonrpc": "2.0", "id": rid, "result": {}}
+        else:
+            resp = {"jsonrpc": "2.0", "id": rid,
+                    "error": {"code": -32601, "message": f"method not found: {method}"}}
+        sys.stdout.write(json.dumps(resp, ensure_ascii=False) + "\n")
+        sys.stdout.flush()
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description="中文任务路由器（词法 + 双门拒答）")
-    ap.add_argument("--config", required=True, help="流程配置 JSON")
+    ap.add_argument("--config", help="流程配置 JSON")
     ap.add_argument("--eval", help="验收样本 JSON（calibrate/holdout 需要）")
     ap.add_argument("--fragile", type=int, default=100, help="余量低于该值视为脆弱（holdout）")
-    ap.add_argument("cmd", choices=["find", "calibrate", "holdout", "lint"])
+    ap.add_argument("cmd", choices=["find", "calibrate", "holdout", "lint", "init", "serve-mcp"])
     ap.add_argument("query", nargs="*", help="find 模式的查询")
     a = ap.parse_args()
 
+    if a.cmd == "init":
+        if not a.query:
+            sys.exit("init 需要输出路径：init my-flows.json")
+        return cmd_init(a.query[0])
+    if a.cmd == "serve-mcp":
+        if not a.config:
+            sys.exit("serve-mcp 需要 --config")
+        return cmd_serve_mcp(a.config)
+    if not a.config:
+        ap.error("需要 --config（或用 init 生成）")
     r = Router(json.load(open(a.config, encoding="utf-8-sig")))
     if a.cmd == "find":
         if not a.query:
