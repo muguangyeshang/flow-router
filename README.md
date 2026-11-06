@@ -5,7 +5,7 @@
 > **Who this is for:** agent engineers with multiple workflows/routes to dispatch.
 > **Not for** beginners without existing flows — you define the triggers, the router scores and abstains. 中文文档在下方 ↓
 
-**English quick view:** Your agent has N workflows; a user says one sentence — which one? LLM guessing is costly and confidently wrong. flow-router answers with lexical scoring (5-tier weighted triggers × BM25-style idf, exclusion clauses, colloquial-template matching) and a **two-gate abstain mechanism** (confidence + absolute score): below threshold it clearly refuses instead of guessing. Pure stdlib, zero dependencies, no model loading — p50≈0.1ms, ~11,700 routes/s single-threaded (`python bench.py`).
+**English quick view:** Your agent has N workflows; a user says one sentence — which one? LLM guessing is costly and confidently wrong. flow-router answers with lexical scoring (5-tier weighted triggers × BM25-style idf, exclusion clauses, colloquial-template matching) and a **two-gate abstain mechanism** (confidence + absolute score): below threshold it clearly refuses instead of guessing. Pure stdlib, zero dependencies, no model loading — p50≈0.1ms, ~10k routes/s single-threaded (`python bench.py`; exact number varies with machine/load).
 
 ```bash
 pip install flow-router
@@ -57,7 +57,7 @@ MCP 配置（Claude / WorkBuddy / 任何支持 MCP 的 agent）：
 | | flow-router | [semantic-router](https://github.com/aurelio-labs/semantic-router) | [llm-intent-router](https://github.com/1084669403/llm-intent-router) |
 |---|---|---|---|
 | 依赖 | **零**（纯标准库） | embedding 模型 + 向量库 | LLM 调用 |
-| 每次路由成本 | **p50≈0.1ms，单线程 ~11,700 routes/s**（`python bench.py` 可复现） | 嵌入推理 | 一次 LLM token |
+| 每次路由成本 | **p50≈0.1ms，单线程万级 routes/s**（`python bench.py` 可复现；精确数字随机器/负载波动——易漂移的数字不做硬声明，这是我们自己的 doc-claims 抓出来的教训） | 嵌入推理 | 一次 LLM token |
 | 拒答机制 | **双门**（置信度门 + 绝对分门），校准/留出集实测定阈值 | 置信度阈值 | 阈值 |
 | 排除条款 not_for | 有（负向词主动排除，单向匹配防误伤） | 无 | 无 |
 | 验收体系 | calibrate 网格搜阈值 + holdout 余量报告（余量不足标"脆弱"） | 无 | 无 |
@@ -71,7 +71,7 @@ MCP 配置（Claude / WorkBuddy / 任何支持 MCP 的 agent）：
 python bench.py          # 冷启动 / 单次延迟 p50·p95 / 单线程吞吐，末行 BENCH-DONE
 ```
 
-参考值（本机实测两轮一致）：冷启动 0.02ms；p50≈0.09ms、p95≈0.18ms；≈11,700 routes/s。数字随机器变化，以你自己跑的为准。
+参考值（本机实测两轮一致）：冷启动 0.02ms；p50≈0.09ms、p95≈0.18ms；吞吐 1.1万 routes/s 量级。数字随机器/负载波动，以你自己跑的为准。
 
 ## 机制速览
 
