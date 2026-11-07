@@ -1,6 +1,6 @@
 # flow-router
 
-[![CI](https://github.com/AYAN-2026/flow-router/actions/workflows/ci.yml/badge.svg)](https://github.com/AYAN-2026/flow-router/actions/workflows/ci.yml)
+[![CI](https://github.com/muguangyeshang/flow-router/actions/workflows/ci.yml/badge.svg)](https://github.com/muguangyeshang/flow-router/actions/workflows/ci.yml)
 
 > **Who this is for:** agent engineers with multiple workflows/routes to dispatch.
 > **Not for** beginners without existing flows — you define the triggers, the router scores and abstains. 中文文档在下方 ↓
